@@ -23,11 +23,13 @@ jobs:
       - name: Build Auth (Go)
         run: |
           cd tech-challenge-fase-2-fiap/auth-service
+          go mod download
           go build .
 
       - name: Build Evaluation (Go)
         run: |
           cd tech-challenge-fase-2-fiap/evaluation-service
+          go mod download
           go build .
 
       - name: Teste serviços Python
