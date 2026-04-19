@@ -1,0 +1,17 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - feature/devsecops
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Show files
+        run: ls -la
