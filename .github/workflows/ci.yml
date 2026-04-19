@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: Build Fase 2
 
 on:
   push:
@@ -10,8 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout fase 3
         uses: actions/checkout@v4
 
-      - name: Show files
-        run: ls -la
+      - name: Clonar fase 2 (app)
+        run: git clone https://github.com/nascied/tech-challenge-fase-2-fiap.git
+
+      - name: Listar serviços
+        run: ls -la tech-challenge-fase-2-fiap
