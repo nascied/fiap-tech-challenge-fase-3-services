@@ -22,15 +22,17 @@ jobs:
 
       - name: Build Auth (Go)
         run: |
-          cd tech-challenge-fase-2-fiap/auth
+          cd tech-challenge-fase-2-fiap/auth-service
           go build .
 
       - name: Build Evaluation (Go)
         run: |
-          cd tech-challenge-fase-2-fiap/evaluation
+          cd tech-challenge-fase-2-fiap/evaluation-service
           go build .
 
-      - name: Teste simples Python services
+      - name: Teste serviços Python
         run: |
-          echo "Python services OK (flag/targeting/analytics)"
-          ls tech-challenge-fase-2-fiap
+          echo "Python services OK"
+          ls tech-challenge-fase-2-fiap/flag-service
+          ls tech-challenge-fase-2-fiap/analytics-service
+          ls tech-challenge-fase-2-fiap/targeting-service
