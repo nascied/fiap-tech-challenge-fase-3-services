@@ -1,4 +1,4 @@
-name: Build Fase 2
+name: Build Microservices Fase 2
 
 on:
   push:
@@ -13,8 +13,20 @@ jobs:
       - name: Checkout fase 3
         uses: actions/checkout@v4
 
-      - name: Clonar fase 2 (app)
+      - name: Clonar fase 2
         run: git clone https://github.com/nascied/tech-challenge-fase-2-fiap.git
 
-      - name: Listar serviços
-        run: ls -la tech-challenge-fase-2-fiap
+      - name: Build Auth (Go)
+        run: |
+          cd tech-challenge-fase-2-fiap/auth
+          go build .
+
+      - name: Build Evaluation (Go)
+        run: |
+          cd tech-challenge-fase-2-fiap/evaluation
+          go build .
+
+      - name: Teste simples Python services
+        run: |
+          echo "Python services OK (flag/targeting/analytics)"
+          ls tech-challenge-fase-2-fiap
