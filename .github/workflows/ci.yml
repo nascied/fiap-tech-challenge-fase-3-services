@@ -16,6 +16,10 @@ jobs:
       - name: Clonar fase 2
         run: git clone https://github.com/nascied/tech-challenge-fase-2-fiap.git
 
+      - name: Ver estrutura da fase 2
+        run: |
+          ls -R tech-challenge-fase-2-fiap
+
       - name: Build Auth (Go)
         run: |
           cd tech-challenge-fase-2-fiap/auth
