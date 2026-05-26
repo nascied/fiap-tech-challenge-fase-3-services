@@ -6,7 +6,7 @@ Este projeto implementa um pipeline de Integração e Entrega Contínua (CI/CD) 
 O objetivo é automatizar o processo de build, testes e validações de qualidade, garantindo que apenas código válido seja integrado ao sistema.
 
 🧱 Arquitetura do Projeto
-🖌
+
 O sistema é composto por microserviços distribuídos:
 
 auth-service (Go)
