@@ -38,7 +38,8 @@ Push na branch → GitHub Actions → Build → Testes → Validações → Suce
 
 Abaixo o pipeline executando corretamente no GitHub Actions:
 
-📌 (INSERIR PRINT DO ACTIONS AQUI)
+<img width="895" height="380" alt="image" src="https://github.com/user-attachments/assets/03099a9f-258f-412a-87d9-eff4622315cb" />
+
 
 Job aberto
 Steps visíveis
@@ -60,11 +61,3 @@ AWS (infraestrutura da Fase 2)
 ✔ Testes automatizados
 ✔ Validações de qualidade
 ✔ Integração com Fase 2
-🟢 PRONTO
-
-Isso aqui te coloca em:
-
-✔ projeto organizado
-✔ explicação clara
-✔ evidência de execução
-✔ nível de entrega aceitável/forte
