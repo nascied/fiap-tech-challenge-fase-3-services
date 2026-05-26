@@ -10,78 +10,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # =========================
-      # CHECKOUT
-      # =========================
       - name: Checkout fase 3
         uses: actions/checkout@v4
 
-      # =========================
-      # CLONE FASE 2
-      # =========================
       - name: Clonar fase 2
         run: git clone https://github.com/nascied/tech-challenge-fase-2-fiap.git
 
       - name: Ver estrutura
         run: ls -R tech-challenge-fase-2-fiap
 
-      # =========================
-      # SETUP GO
-      # =========================
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
 
       # =========================
-      # QUALITY CHECK (ANTES DO BUILD)
+      # AUTH SERVICE
       # =========================
-      - name: Vet & Format Auth
-        run: |
-          cd tech-challenge-fase-2-fiap/auth-service
-          go vet ./...
-          go fmt ./...
-
-      - name: Vet & Format Evaluation
-        run: |
-          cd tech-challenge-fase-2-fiap/evaluation-service
-          go vet ./...
-          go fmt ./...
-
-      # =========================
-      # TESTS (ANTES DO BUILD)
-      # =========================
-      - name: Test Auth (Go)
-        run: |
-          cd tech-challenge-fase-2-fiap/auth-service
-          go test ./...
-
-      - name: Test Evaluation (Go)
-        run: |
-          cd tech-challenge-fase-2-fiap/evaluation-service
-          go test ./...
-
-      # =========================
-      # BUILD (DEPOIS DOS TESTES)
-      # =========================
-      - name: Build Auth (Go)
+      - name: Auth - deps + quality + test + build
         run: |
           cd tech-challenge-fase-2-fiap/auth-service
           go mod tidy
           go mod download
+          go vet ./...
+          go fmt ./...
+          go test ./...
           go build .
 
-      - name: Build Evaluation (Go)
+      # =========================
+      # EVALUATION SERVICE
+      # =========================
+      - name: Evaluation - deps + quality + test + build
         run: |
           cd tech-challenge-fase-2-fiap/evaluation-service
           go mod tidy
           go mod download
+          go vet ./...
+          go fmt ./...
+          go test ./...
           go build .
 
       # =========================
-      # PYTHON SERVICES (CHECK SIMPLES)
+      # PYTHON SERVICES (CHECK)
       # =========================
-      - name: Teste serviços Python
+      - name: Python services check
         run: |
           python3 --version
           ls tech-challenge-fase-2-fiap/flag-service
