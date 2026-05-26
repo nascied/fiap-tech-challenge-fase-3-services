@@ -10,15 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # =========================
+      # CHECKOUT
+      # =========================
       - name: Checkout fase 3
         uses: actions/checkout@v4
 
+      # =========================
+      # CLONE FASE 2
+      # =========================
       - name: Clonar fase 2
         run: git clone https://github.com/nascied/tech-challenge-fase-2-fiap.git
 
-      - name: Ver estrutura da fase 2
-        run: |
-          ls -R tech-challenge-fase-2-fiap
+      - name: Ver estrutura
+        run: ls -R tech-challenge-fase-2-fiap
 
       # =========================
       # SETUP GO
@@ -29,7 +34,35 @@ jobs:
           go-version: '1.21'
 
       # =========================
-      # AUTH SERVICE (GO)
+      # QUALITY CHECK (ANTES DO BUILD)
+      # =========================
+      - name: Vet & Format Auth
+        run: |
+          cd tech-challenge-fase-2-fiap/auth-service
+          go vet ./...
+          go fmt ./...
+
+      - name: Vet & Format Evaluation
+        run: |
+          cd tech-challenge-fase-2-fiap/evaluation-service
+          go vet ./...
+          go fmt ./...
+
+      # =========================
+      # TESTS (ANTES DO BUILD)
+      # =========================
+      - name: Test Auth (Go)
+        run: |
+          cd tech-challenge-fase-2-fiap/auth-service
+          go test ./...
+
+      - name: Test Evaluation (Go)
+        run: |
+          cd tech-challenge-fase-2-fiap/evaluation-service
+          go test ./...
+
+      # =========================
+      # BUILD (DEPOIS DOS TESTES)
       # =========================
       - name: Build Auth (Go)
         run: |
@@ -38,9 +71,6 @@ jobs:
           go mod download
           go build .
 
-      # =========================
-      # EVALUATION SERVICE (GO)
-      # =========================
       - name: Build Evaluation (Go)
         run: |
           cd tech-challenge-fase-2-fiap/evaluation-service
@@ -49,14 +79,11 @@ jobs:
           go build .
 
       # =========================
-      # PYTHON SERVICES (VALIDAÇÃO SIMPLES)
+      # PYTHON SERVICES (CHECK SIMPLES)
       # =========================
       - name: Teste serviços Python
         run: |
           python3 --version
-          echo "Flag service:"
           ls tech-challenge-fase-2-fiap/flag-service
-          echo "Analytics service:"
           ls tech-challenge-fase-2-fiap/analytics-service
-          echo "Targeting service:"
           ls tech-challenge-fase-2-fiap/targeting-service
