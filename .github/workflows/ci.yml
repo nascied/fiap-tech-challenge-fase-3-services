@@ -17,9 +17,19 @@ jobs:
         run: git clone https://github.com/nascied/tech-challenge-fase-2-fiap.git
 
       - name: Ver estrutura da fase 2
-        run: |
-          ls -R tech-challenge-fase-2-fiap
+        run: ls -R tech-challenge-fase-2-fiap
 
+      # ======================
+      # SETUP GO (ESSENCIAL)
+      # ======================
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      # ======================
+      # GO AUTH
+      # ======================
       - name: Build Auth (Go)
         run: |
           cd tech-challenge-fase-2-fiap/auth-service
@@ -27,6 +37,9 @@ jobs:
           go mod download
           go build .
 
+      # ======================
+      # GO EVALUATION
+      # ======================
       - name: Build Evaluation (Go)
         run: |
           cd tech-challenge-fase-2-fiap/evaluation-service
@@ -34,9 +47,12 @@ jobs:
           go mod download
           go build .
 
-      - name: Teste serviços Python
+      # ======================
+      # PYTHON CHECK (BÁSICO)
+      # ======================
+      - name: Python check
         run: |
-          echo "Python services OK"
+          python3 --version
           ls tech-challenge-fase-2-fiap/flag-service
           ls tech-challenge-fase-2-fiap/analytics-service
           ls tech-challenge-fase-2-fiap/targeting-service
