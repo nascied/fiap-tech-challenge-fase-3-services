@@ -118,7 +118,6 @@ def process_message(message):
 
         # Não deleta a mensagem, tenta novamente
 
-
 def sqs_worker_loop():
     """Loop principal do worker que ouve a fila SQS."""
 
