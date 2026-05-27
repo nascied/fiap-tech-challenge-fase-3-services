@@ -215,10 +215,10 @@ docker build -t analytics-service .
 
 ```bash
 docker tag analytics-service:latest \
-123456789012.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+<aws-account-id>.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
 
 docker push \
-123456789012.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+<aws-account-id>.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
 ```
 
 ---
@@ -257,7 +257,7 @@ Após o push das imagens:
 ```yaml
 containers:
   - name: analytics-service
-    image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+    image: <aws-account-id>.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
 ```
 
 ---
@@ -434,7 +434,7 @@ A implementação teve como foco:
 
 # 👨‍💻 Autor
 
-**Sandro Moraes de Souza**  
+**Sandro**  
 Pós-Tech FIAP — Arquitetura Cloud e DevOps  
 Tech Challenge Fase 3
 
