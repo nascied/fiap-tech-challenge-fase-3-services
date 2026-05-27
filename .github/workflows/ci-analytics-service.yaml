@@ -1,4 +1,4 @@
-name: CI - Analytics Service
+name: CI - Analytics Service GITOPS
 
 on:
   push:
