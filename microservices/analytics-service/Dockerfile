@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-############################
+##############################
 # 1) Builder (deps + venv)
-############################
+##############################
 FROM python:3.11-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
