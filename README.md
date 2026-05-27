@@ -18,7 +18,85 @@ CI - Targeting Service
 CI - Analytics Service
 
 Cada workflow executa validações específicas de build, testes, qualidade e segurança.
+# 🚀 Tech Challenge Fase 3 — Pipeline DevSecOps
 
+## 📋 Sobre o Projeto
+
+Este projeto representa a implementação da pipeline DevSecOps da plataforma ToggleMaster, utilizando GitHub Actions para automação de integração contínua, validação de qualidade, análise estática de código, segurança e atualização automatizada do ambiente GitOps.
+
+A solução foi construída para garantir rastreabilidade, padronização e segurança no fluxo de entrega dos microserviços da aplicação.
+
+---
+
+## 🧱 Arquitetura da Pipeline
+
+A pipeline foi estruturada em workflows independentes por microserviço:
+
+- CI - Auth Service
+- CI - Evaluation Service
+- CI - Flag Service
+- CI - Targeting Service
+- CI - Analytics Service
+
+Cada workflow executa validações específicas de build, testes, qualidade e segurança.
+
+---
+
+## 🔄 Fluxo DevSecOps
+
+```text
+Push / Pull Request
+        ↓
+ Build & Unit Test
+        ↓
+ Linter / Static Analysis
+        ↓
+ Security Scan (SAST & SCA)
+        ↓
+ Docker Build & Push to ECR
+        ↓
+ Update GitOps Manifests
+        ↓
+ ArgoCD Sync no EKS
+```
+
+---
+
+## ⚙️ Pipeline CI/CD
+
+A pipeline é executada automaticamente em:
+
+- Push na branch principal
+- Pull Requests
+- Atualizações dos microserviços
+
+O fluxo foi dividido em múltiplas etapas para garantir validação progressiva antes do deploy.
+
+---
+
+## ✅ Build e Testes Automatizados
+
+A etapa inicial realiza:
+
+- preparação do ambiente
+- instalação de dependências
+- execução de testes automatizados
+- validação estrutural dos serviços
+
+### Serviços Python
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
+### Serviços Go
+
+```bash
+go mod tidy
+go vet
+go test
+```
 🔄 Fluxo DevSecOps
 Push / Pull Request
         ↓
