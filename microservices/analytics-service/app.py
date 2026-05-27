@@ -38,15 +38,15 @@ try:
     session = boto3.Session(region_name=AWS_REGION)
 
     # sqs_client = session.client(
-    #     "sqs",
-    #     endpoint_url=ENDPOINT
+    #      "sqs",
+    #      endpoint_url=ENDPOINT
     # )  # se for usar localstack colocar endpoint_url=ENDPOINT
 
     sqs_client = session.client("sqs")
 
     # dynamodb_client = session.client(
-    #     "dynamodb",
-    #     endpoint_url=ENDPOINT
+    #      "dynamodb",
+    #      endpoint_url=ENDPOINT
     # )  # se for usar localstack colocar endpoint_url=ENDPOINT
 
     dynamodb_client = session.client("dynamodb")
@@ -118,6 +118,7 @@ def process_message(message):
 
         # Não deleta a mensagem, tenta novamente
 
+
 def sqs_worker_loop():
     """Loop principal do worker que ouve a fila SQS."""
 
@@ -152,6 +153,7 @@ def sqs_worker_loop():
             log.error(f"Erro inesperado no loop principal do SQS: {e}")
 
             time.sleep(10)
+
 
 # --- Servidor Flask (Apenas para Health Check) ---
 
