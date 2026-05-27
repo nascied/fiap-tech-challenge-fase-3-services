@@ -1,0 +1,20 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: analitics-service-scale-object
+  namespace: fiap-tc-f2
+spec:
+  scaleTargetRef:
+    name: analytics-service
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: analytics-service-aws-auth
+      metadata:
+        queueURL: https://sqs.us-east-1.amazonaws.com/913901705985/evaluation-events
+        awsRegion: us-east-1
+        queueLength: "5"

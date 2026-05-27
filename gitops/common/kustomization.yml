@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: fiap-tc-f2
+ 
+resources:
+  - ../common/namespace.yml
+  - ../common/gatewayclass.yml
+  - ../auth-service/auth-service-configMap.yml
+  - ../auth-service/auth-service-service.yml
+  - ../auth-service/auth-service-secret.yml
+  - ../auth-service/auth-service-httproute.yml
+  - ../auth-service/auth-service-gateway.yml
+  - ../auth-service/auth-service-deployment.yml
+  - ../auth-service/auth-service-hpa.yml
+  
+  - ../flag-service/flag-service-configMap.yml
+  - ../flag-service/flag-service-service.yml
+  - ../flag-service/flag-service-secret.yml
+  - ../flag-service/flag-service-httproute.yml
+  - ../flag-service/flag-service-gateway.yml
+  - ../flag-service/flag-service-deployment.yml
+  - ../flag-service/flag-service-hpa.yml
+
+  - ../targeting-service/targeting-service-configMap.yml
+  - ../targeting-service/targeting-service-service.yml
+  - ../targeting-service/targeting-service-secret.yml
+  - ../targeting-service/targeting-service-httproute.yml
+  - ../targeting-service/targeting-service-gateway.yml
+  - ../targeting-service/targeting-service-deployment.yml
+  - ../targeting-service/targeting-service-hpa.yml
+
+  - ../evaluation-service/evaluation-service-configMap.yml
+  - ../evaluation-service/evaluation-service-service.yml
+  - ../evaluation-service/evaluation-service-secret.yml
+  - ../evaluation-service/evaluation-service-httproute.yml
+  - ../evaluation-service/evaluation-service-gateway.yml
+  - ../evaluation-service/evaluation-service-deployment.yml
+  - ../evaluation-service/evaluation-service-hpa.yml
+
+  - ../analytics-service/analytics-service-config-map.yml
+  - ../analytics-service/analytics-service-service.yml
+  - ../analytics-service/analytics-service-secret.yml
+  - ../analytics-service/analytics-service-httproute.yml
+  - ../analytics-service/analytics-service-gateway.yml
+  - ../analytics-service/analytics-service-deployment.yml
+  - ../analytics-service/analytics-service-hpa.yml

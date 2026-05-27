@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evaluation-service
+  namespace: fiap-tc-f2
+ 
+spec:
+  selector:
+    matchLabels:
+      app: evaluation-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: evaluation-service
+    spec:
+      containers:
+        - name: evaluation-service
+          image: 913901705985.dkr.ecr.us-east-1.amazonaws.com/fiap-tc-f2-reg:evaluation-service-v1
+          ports:
+            - containerPort: 8004
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+        
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3 
+          
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          env:
+            - name: SERVICE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: evaluation-service-secret
+                  key: SERVICE_API_KEY
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: evaluation-service-secret
+                  key: AWS_ACCESS_KEY_ID
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: evaluation-service-secret
+                  key: AWS_SECRET_ACCESS_KEY
+
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: evaluation-service-secret
+                  key: AWS_SESSION_TOKEN 
+
+            - name: PORT
+              valueFrom:
+                configMapKeyRef: 
+                  name: evaluation-service-config-map
+                  key: PORT
+            - name: AWS_SQS_URL
+              valueFrom:
+                configMapKeyRef: 
+                  name: evaluation-service-config-map
+                  key: AWS_SQS_URL
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef: 
+                  name: evaluation-service-config-map
+                  key: AWS_REGION                
+            - name: FLAG_SERVICE_URL
+              valueFrom:
+                configMapKeyRef: 
+                  name: evaluation-service-config-map
+                  key: FLAG_SERVICE_URL
+            - name: TARGETING_SERVICE_URL
+              valueFrom:
+                configMapKeyRef: 
+                  name: evaluation-service-config-map
+                  key: TARGETING_SERVICE_URL
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef: 
+                  name: evaluation-service-config-map
+                  key: REDIS_URL          
