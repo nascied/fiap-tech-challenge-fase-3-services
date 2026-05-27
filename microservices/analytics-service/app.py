@@ -26,7 +26,10 @@ DYNAMODB_TABLE_NAME = os.getenv("AWS_DYNAMODB_TABLE")
 # --> Descomente se for usar localstack
 
 if not all([AWS_REGION, SQS_QUEUE_URL, DYNAMODB_TABLE_NAME]):
-    log.critical("Erro: AWS_REGION, AWS_SQS_URL, e AWS_DYNAMODB_TABLE devem ser definidos.")
+    log.critical(
+        "Erro: AWS_REGION, AWS_SQS_URL, "
+        "e AWS_DYNAMODB_TABLE devem ser definidos."
+    )
     sys.exit(1)
 
 # --- Clientes Boto3 ---
@@ -34,10 +37,18 @@ if not all([AWS_REGION, SQS_QUEUE_URL, DYNAMODB_TABLE_NAME]):
 try:
     session = boto3.Session(region_name=AWS_REGION)
 
-    #sqs_client = session.client("sqs", endpoint_url=ENDPOINT) # se for usar localstack colocar endpoint_url=ENDPOINT
+    # sqs_client = session.client(
+    #     "sqs",
+    #     endpoint_url=ENDPOINT
+    # )  # se for usar localstack colocar endpoint_url=ENDPOINT
+
     sqs_client = session.client("sqs")
 
-    #dynamodb_client = session.client("dynamodb", endpoint_url=ENDPOINT) # se for usar localstack colocar endpoint_url=ENDPOINT
+    # dynamodb_client = session.client(
+    #     "dynamodb",
+    #     endpoint_url=ENDPOINT
+    # )  # se for usar localstack colocar endpoint_url=ENDPOINT
+
     dynamodb_client = session.client("dynamodb")
 
     log.info(f"Clientes Boto3 inicializados na região {AWS_REGION}")
@@ -161,6 +172,7 @@ def start_worker():
 
     worker_thread = threading.Thread(target=sqs_worker_loop, daemon=True)
     worker_thread.start()
+
 
 
 # Inicia o worker SQS em uma thread de background
