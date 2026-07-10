@@ -2,7 +2,7 @@ apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
   name: analitics-service-scale-object
-  namespace: fiap-tc-f2
+  namespace: fiap-tc-f4
 spec:
   scaleTargetRef:
     name: analytics-service

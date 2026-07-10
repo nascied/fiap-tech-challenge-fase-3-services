@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: flag-service
-          image: 913901705985.dkr.ecr.us-east-1.amazonaws.com/fiap-tc-f2-reg:flag-service-v1
+          image: 913901705985.dkr.ecr.us-east-1.amazonaws.com/fiap-tc-f4-reg:flag-service-v1
           ports:
             - containerPort: 8002
           resources:

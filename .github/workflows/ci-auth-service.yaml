@@ -1,110 +1,137 @@
-name: CI - Auth Service
+name: CI/CD tooglemaster - auth-service
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'microservices/auth-service/**'
   pull_request:
+    types: [opened, synchronize, reopened, closed]
     branches: [main]
     paths:
       - 'microservices/auth-service/**'
 
-env:
+env: 
   SERVICE_NAME: auth-service
   SERVICE_PATH: microservices/auth-service
+  GO_VERSION: '1.24'
   AWS_REGION: us-east-1
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-test:
-    name: Build & Unit Test
+  lintcode:
+    name: Lint e qualidade de código
+    if: github.event.action != 'closed' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: microservices/auth-service
+        working-directory: ${{ env.SERVICE_PATH }}
+   
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout código
+        uses: actions/checkout@v4
 
-      - name: Setup Go
+      - name: Configura o ambiente de execução do  Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ${{ env.SERVICE_PATH }}/go.sum
 
-      - name: Download dependencies
-        run: go mod download
+      - name: go vet
+        run: go vet ./...
 
-      - name: Build
+      - name: Build (garante que compila)
         run: go build ./...
 
-      - name: Run tests
+      - name: Testes
         run: go test ./... -v
 
-  lint:
-    name: Linter / Static Analysis
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: microservices/auth-service
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-
-      - name: Run golangci-lint
+      - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61
-          working-directory: microservices/auth-service
+          version: latest
+          working-directory: ${{ env.SERVICE_PATH }}
+          args: --timeout=5m
 
-  security-scan:
-    name: Security Scan (SAST & SCA)
-    needs: lint
+  security:
+    name: Segurança (SAST + SCA)
+    needs: lintcode
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: microservices/auth-service
+        working-directory: ${{ env.SERVICE_PATH }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout código
+        uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ${{ env.SERVICE_PATH }}/go.sum
 
-      - name: SCA - Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
+      - name: SCA - Trivy filesystem scan (dependências e segredos)
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
-          scan-ref: 'microservices/auth-service'
+          scan-ref: ${{ env.SERVICE_PATH }}
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
 
-      - name: SAST - Install gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@v2.20.0
+      - name: SCA - govulncheck (CVEs conhecidas nas dependências Go)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
 
-      - name: SAST - Run gosec
-        run: gosec ./...
-        continue-on-error: true
-
-  docker-build-push:
-    name: Docker Build & Push to ECR
-    needs: security-scan
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: SAST - gosec
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec ./...
+  build:
+    name: Build da imagem Docker
+    needs: security
     runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.meta.outputs.short_sha }}
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merged == true && github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}
 
-      - name: Set image tag
+      - name: "Dockerfile Lint (Hadolint)"
+        id: hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ SERVICE_PATH }}/Dockerfile
+          no-fail: true
+
+      - name: Define tag da imagem
         id: meta
-        run: echo "short_sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+        run: echo "tag=${{ env.SERVICE_NAME }}-$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build da imagem Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.SERVICE_PATH }}
+          file: ${{ env.SERVICE_PATH }}/Dockerfile
+          load: true
+          push: false
+          tags: ${{ env.SERVICE_NAME }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trivy - scan da imagem
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: '${{ env.SERVICE_NAME }}:${{ steps.meta.outputs.tag }}'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+      # A partir daqui só roda em push para main (CD): publica no ECR e atualiza o GitOps
       - name: Configure AWS credentials
+        if: github.event.pull_request.merged == true
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -112,61 +139,45 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: ecr-login
+      - name: Login no Amazon ECR
+        id: ecrlogin
+        if: github.event.pull_request.merged == true
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.ECR_REGISTRY }}/fiap-tc-f3-auth-reg/auth-service:${{ steps.meta.outputs.short_sha }} \
-            microservices/auth-service
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Trivy container scan
-        uses: aquasecurity/trivy-action@master
+      - name: Tag e push para o ECR
+        if: github.event.pull_request.merged == true
+        uses: docker/build-push-action@v6
         with:
-          image-ref: '${{ secrets.ECR_REGISTRY }}/fiap-tc-f3-auth-reg:${{ steps.meta.outputs.short_sha }}'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+          context: ${{ env.SERVICE_PATH }}
+          file: ${{ env.SERVICE_PATH }}/Dockerfile
+          push: true
+          tags: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Push to ECR
+      - name: Atualiza manifesto GitOps
+        if: github.event.pull_request.merged == true
         run: |
-          # Skip push if image tag already exists (handles re-runs with immutable tags)
-          if aws ecr describe-images --repository-name fiap-tc-f3-auth-reg --image-ids imageTag=${{ steps.meta.outputs.short_sha }} 2>/dev/null; then
-            echo "Image tag ${{ steps.meta.outputs.short_sha }} already exists in ECR, skipping push."
-          else
-            docker push ${{ secrets.ECR_REGISTRY }}/fiap-tc-f3-auth-reg:${{ steps.meta.outputs.short_sha }}
-          fi
+          sed -i "s|image: .*|image: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}:${{ steps.meta.outputs.tag }}|" \
+            gitops/auth-service/auth-service-deployment.yml
 
-  update-gitops:
-    name: Update GitOps Manifests
-    needs: docker-build-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GH_TOKEN }}
-
-      - name: Set image tag
-        id: meta
-        run: echo "short_sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
-
-      - name: Update deployment image tag
-        run: |
-          sed -i "s|image: .*auth-service:.*|image: ${{ secrets.ECR_REGISTRY }}/fiap-tc-f3-auth-reg:${{ steps.meta.outputs.short_sha }}|" \
-            gitops/auth-service/auth-service-deployment.yaml
-
-      - name: Commit and push
+      - name: Commit e push do GitOps
+        if: github.event.pull_request.merged == true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add gitops/auth-service/auth-service-deployment.yaml
-          git commit -m "chore: update auth-service image to ${{ steps.meta.outputs.short_sha }}"
-          # Retry loop to handle concurrent pushes from other service pipelines
+          git add gitops/auth-service/auth-service-deployment.yml
+          if git diff --cached --quiet; then
+            echo "Nenhuma mudança no manifesto, pulando commit."
+            exit 0
+          fi
+          git commit -m "chore: atualiza imagem do auth-service para ${{ steps.meta.outputs.tag }}"
           for i in 1 2 3; do
             git pull --rebase origin main && git push && break
-            echo "Push attempt $i failed, retrying in 5s..."
+            echo "Tentativa $i de push falhou, tentando novamente em 5s..."
             sleep 5
           done
+    

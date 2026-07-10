@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: flag-service-config-map
-  namespace: fiap-tc-f2
+  namespace: fiap-tc-f4
 data:
   AUTH_SERVICE_URL: "http://auth-service-svc:8001"
   PORT: "8002"

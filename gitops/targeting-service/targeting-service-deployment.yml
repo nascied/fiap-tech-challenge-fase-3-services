@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: targeting-service
-          image: 913901705985.dkr.ecr.us-east-1.amazonaws.com/fiap-tc-f2-reg:tageting-service-v1
+          image: 913901705985.dkr.ecr.us-east-1.amazonaws.com/fiap-tc-f4-reg:tageting-service-v1
           ports:
             - containerPort: 8003
           resources:
