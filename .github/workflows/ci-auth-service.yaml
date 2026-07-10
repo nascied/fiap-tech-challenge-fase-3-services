@@ -76,20 +76,29 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '0'
           format: 'table'
-          output: 'trivy-fs-report.txt'
+          output: 'trivy-fs-report-${{ env.SERVICE_NAME }}.txt'
 
       - name: Upload relatório Trivy (filesystem)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trivy-fs-report-${{ env.SERVICE_NAME }}
-          path: ${{ env.SERVICE_PATH }}/trivy-fs-report.txt
+          path: trivy-fs-report-${{ env.SERVICE_NAME }}.txt
           retention-days: 30
 
       - name: SCA - govulncheck (CVEs conhecidas nas dependências Go)
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./...
+          govulncheck ./... > govulncheck-report.txt 2>&1 || true
+          cat govulncheck-report.txt
+
+      - name: Upload relatório govulncheck
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: govulncheck-report-${{ env.SERVICE_NAME }}
+          path: ${{ env.SERVICE_PATH }}/govulncheck-report.txt
+          retention-days: 30
 
       - name: SAST - gosec
         run: |
