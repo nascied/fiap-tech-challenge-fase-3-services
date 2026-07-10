@@ -132,7 +132,7 @@ jobs:
 
       - name: Define tag da imagem
         id: meta
-        run: echo "tag=${{ env.SERVICE_NAME }}-$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+        run: echo "tag=${{ env.SERVICE_NAME }}-$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -182,8 +182,11 @@ jobs:
 
       - name: Atualiza manifesto GitOps
         run: |
-          sed -i "s|image: .*|image: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}:${{ steps.meta.outputs.tag }}|" \
-            gitops/auth-service/auth-service-deployment.yml
+          FILE=gitops/auth-service/auth-service-deployment.yml
+          grep -q "^\s*image:" "$FILE" || { echo "Linha 'image:' não encontrada em $FILE"; exit 1; }
+          sed -i "s|image: .*|image: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}:${{ steps.meta.outputs.tag }}|" "$FILE"
+          grep -q "image: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}:${{ steps.meta.outputs.tag }}" "$FILE" \
+            || { echo "Falha ao atualizar a tag da imagem em $FILE"; exit 1; }
 
       - name: Commit e push do GitOps
         run: |
@@ -195,8 +198,16 @@ jobs:
             exit 0
           fi
           git commit -m "chore: atualiza imagem do auth-service para ${{ steps.meta.outputs.tag }}"
+          success=false
           for i in 1 2 3; do
-            git pull --rebase origin main && git push && break
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              success=true
+              break
+            fi
             echo "Tentativa $i de push falhou, tentando novamente em 5s..."
             sleep 5
           done
+          if [ "$success" != "true" ]; then
+            echo "Falha ao fazer push para o GitOps após 3 tentativas."
+            exit 1
+          fi
