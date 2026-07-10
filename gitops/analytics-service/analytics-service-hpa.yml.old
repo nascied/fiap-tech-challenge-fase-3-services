@@ -2,7 +2,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: analytics-service-hpa
-  namespace: fiap-tc-f2
+  namespace: fiap-tc-f4
  
 spec:
   scaleTargetRef:

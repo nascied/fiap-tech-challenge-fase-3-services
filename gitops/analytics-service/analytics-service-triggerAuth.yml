@@ -2,7 +2,7 @@ apiVersion: keda.sh/v1alpha1
 kind: TriggerAuthentication
 metadata:
   name: analytics-service-aws-auth
-  namespace: fiap-tc-f2
+  namespace: fiap-tc-f4
 spec:
   secretTargetRef:
     - parameter: awsAccessKeyID

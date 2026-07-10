@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 metadata:
-  name: fiap-tc-f2
+  name: fiap-tc-f4
  
 resources:
   - ../common/namespace.yml

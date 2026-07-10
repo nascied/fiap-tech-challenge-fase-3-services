@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: analytics-service
-  namespace: fiap-tc-f2
+  namespace: fiap-tc-f4
  
 spec:
   selector:
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: analytics-service
-          image: 913901705985.dkr.ecr.us-east-1.amazonaws.com/fiap-tc-f2-reg:analitycs-service-v1
+          image: 913901705985.dkr.ecr.us-east-1.amazonaws.com/fiap-tc-f4-reg:analitycs-service-v1
           ports:
             - containerPort: 8005
           resources:

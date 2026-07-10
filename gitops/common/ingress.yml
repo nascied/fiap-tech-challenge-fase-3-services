@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: fiap-tc-f2-ingress
-  namespace: fiap-tc-f2
+  name: fiap-tc-f4-ingress
+  namespace: fiap-tc-f4
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:

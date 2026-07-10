@@ -1,4 +1,4 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: fiap-tc-f2
+  name: fiap-tc-f4
