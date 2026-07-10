@@ -4,8 +4,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches: [main]
-    paths:
-      - 'microservices/auth-service/**'
+#    paths:
+#      - 'microservices/auth-service/**'
 
 env: 
   SERVICE_NAME: auth-service
