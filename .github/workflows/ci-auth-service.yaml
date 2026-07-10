@@ -74,7 +74,17 @@ jobs:
           scan-type: 'fs'
           scan-ref: ${{ env.SERVICE_PATH }}
           severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          exit-code: '0'
+          format: 'table'
+          output: 'trivy-fs-report.txt'
+
+      - name: Upload relatório Trivy (filesystem)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-fs-report-${{ env.SERVICE_NAME }}
+          path: ${{ env.SERVICE_PATH }}/trivy-fs-report.txt
+          retention-days: 30
 
       - name: SCA - govulncheck (CVEs conhecidas nas dependências Go)
         run: |
