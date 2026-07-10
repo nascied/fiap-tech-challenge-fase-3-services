@@ -103,7 +103,16 @@ jobs:
       - name: SAST - gosec
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec ./...
+          gosec ./... > gosec-report.txt 2>&1 || true
+          cat gosec-report.txt
+
+      - name: Upload relatório gosec
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gosec-report-${{ env.SERVICE_NAME }}
+          path: ${{ env.SERVICE_PATH }}/gosec-report.txt
+          retention-days: 30
   build:
     name: Build da imagem Docker
     needs: security
