@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: 372515679553.dkr.ecr.us-east-1.amazonaws.com/fiap-tc-f4-auth-reg:auth-service-v1
+          image: 372515679553.dkr.ecr.us-east-1.amazonaws.com/fiap-tc-f4-auth-reg:auth-service-bf5fc36
           ports:
             - containerPort: 8001
           resources:
