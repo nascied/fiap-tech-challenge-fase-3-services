@@ -101,7 +101,7 @@ jobs:
         id: hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: ${{ SERVICE_PATH }}/Dockerfile
+          dockerfile: ${{ env.SERVICE_PATH }}/Dockerfile
           no-fail: true
 
       - name: Define tag da imagem
