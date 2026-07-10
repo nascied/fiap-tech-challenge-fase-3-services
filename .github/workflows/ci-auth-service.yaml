@@ -180,4 +180,3 @@ jobs:
             echo "Tentativa $i de push falhou, tentando novamente em 5s..."
             sleep 5
           done
-    
