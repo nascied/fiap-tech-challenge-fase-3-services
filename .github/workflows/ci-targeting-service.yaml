@@ -3,8 +3,6 @@ name: CI/CD tooglemaster - targeting-service
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'microservices/targeting-service/**'
 
 env:
   SERVICE_NAME: targeting-service
@@ -124,7 +122,9 @@ jobs:
     needs: security
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -188,34 +188,13 @@ jobs:
           tags: ${{ secrets.ECR_REGISTRY_TARGETING_SERVICE }}:${{ steps.meta.outputs.tag }}
           cache-from: type=gha
 
-      - name: Atualiza manifesto GitOps
-        run: |
-          FILE=gitops/targeting-service/targeting-service-deployment.yml
-          grep -q "^\s*image:" "$FILE" || { echo "Linha 'image:' não encontrada em $FILE"; exit 1; }
-          sed -i "s|image: .*|image: ${{ secrets.ECR_REGISTRY_TARGETING_SERVICE }}:${{ steps.meta.outputs.tag }}|" "$FILE"
-          grep -q "image: ${{ secrets.ECR_REGISTRY_TARGETING_SERVICE }}:${{ steps.meta.outputs.tag }}" "$FILE" \
-            || { echo "Falha ao atualizar a tag da imagem em $FILE"; exit 1; }
-
-      - name: Commit e push do GitOps
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add gitops/targeting-service/targeting-service-deployment.yml
-          if git diff --cached --quiet; then
-            echo "Nenhuma mudança no manifesto, pulando commit."
-            exit 0
-          fi
-          git commit -m "chore: atualiza imagem do targeting-service para ${{ steps.meta.outputs.tag }}"
-          success=false
-          for i in 1 2 3; do
-            if git pull --rebase origin main && git push origin HEAD:main; then
-              success=true
-              break
-            fi
-            echo "Tentativa $i de push falhou, tentando novamente em 5s..."
-            sleep 5
-          done
-          if [ "$success" != "true" ]; then
-            echo "Falha ao fazer push para o GitOps após 3 tentativas."
-            exit 1
-          fi
+  update-gitops:
+    name: Atualiza imagem no GitOps
+    needs: build
+    uses: nascied/fiap-tech-challenge-fase-3-gitops/.github/workflows/update-image.yaml@main
+    with:
+      service: targeting-service
+      image_repository: ${{ secrets.ECR_REGISTRY_TARGETING_SERVICE }}
+      image_tag: ${{ needs.build.outputs.image_tag }}
+    secrets:
+      GITOPS_PUSH_TOKEN: ${{ secrets.GITOPS_PUSH_TOKEN }}
