@@ -1,0 +1,83 @@
+name: Sincroniza valores de infraestrutura no GitOps
+
+on:
+  repository_dispatch:
+    types: [infra-outputs-updated]
+
+jobs:
+  auth-service:
+    name: Atualiza values do auth-service
+    uses: nascied/fiap-tech-challenge-fase-3-gitops/.github/workflows/update-infra-values.yaml@main
+    with:
+      service: auth-service
+      values_json: |
+        {
+          "image.repository": "${{ github.event.client_payload.ecr['auth-service'] }}",
+          "secret.DATABASE_URL": "${{ github.event.client_payload.rds['auth-service'] }}"
+        }
+    secrets:
+      GITOPS_PUSH_TOKEN: ${{ secrets.GITOPS_PUSH_TOKEN }}
+
+  flag-service:
+    name: Atualiza values do flag-service
+    uses: nascied/fiap-tech-challenge-fase-3-gitops/.github/workflows/update-infra-values.yaml@main
+    with:
+      service: flag-service
+      values_json: |
+        {
+          "image.repository": "${{ github.event.client_payload.ecr['flag-service'] }}",
+          "secret.DATABASE_URL": "${{ github.event.client_payload.rds['flag-service'] }}"
+        }
+    secrets:
+      GITOPS_PUSH_TOKEN: ${{ secrets.GITOPS_PUSH_TOKEN }}
+
+  targeting-service:
+    name: Atualiza values do targeting-service
+    uses: nascied/fiap-tech-challenge-fase-3-gitops/.github/workflows/update-infra-values.yaml@main
+    with:
+      service: targeting-service
+      values_json: |
+        {
+          "image.repository": "${{ github.event.client_payload.ecr['targeting-service'] }}",
+          "secret.DATABASE_URL": "${{ github.event.client_payload.rds['targeting-service'] }}"
+        }
+    secrets:
+      GITOPS_PUSH_TOKEN: ${{ secrets.GITOPS_PUSH_TOKEN }}
+
+  evaluation-service:
+    name: Atualiza values do evaluation-service
+    uses: nascied/fiap-tech-challenge-fase-3-gitops/.github/workflows/update-infra-values.yaml@main
+    with:
+      service: evaluation-service
+      values_json: |
+        {
+          "image.repository": "${{ github.event.client_payload.ecr['evaluation-service'] }}",
+          "configMap.AWS_SQS_URL": "${{ github.event.client_payload.sqs_queue_url }}",
+          "configMap.AWS_REGION": "${{ github.event.client_payload.aws_region }}",
+          "configMap.REDIS_URL": "${{ github.event.client_payload.redis_url }}",
+          "secret.AWS_ACCESS_KEY_ID": "${{ github.event.client_payload.aws_access_key_id }}",
+          "secret.AWS_SECRET_ACCESS_KEY": "${{ github.event.client_payload.aws_secret_access_key }}",
+          "secret.AWS_SESSION_TOKEN": "${{ github.event.client_payload.aws_session_token }}"
+        }
+    secrets:
+      GITOPS_PUSH_TOKEN: ${{ secrets.GITOPS_PUSH_TOKEN }}
+
+  analytics-service:
+    name: Atualiza values do analytics-service
+    uses: nascied/fiap-tech-challenge-fase-3-gitops/.github/workflows/update-infra-values.yaml@main
+    with:
+      service: analytics-service
+      values_json: |
+        {
+          "image.repository": "${{ github.event.client_payload.ecr['analytics-service'] }}",
+          "configMap.AWS_SQS_URL": "${{ github.event.client_payload.sqs_queue_url }}",
+          "configMap.AWS_REGION": "${{ github.event.client_payload.aws_region }}",
+          "configMap.AWS_DYNAMODB_TABLE": "${{ github.event.client_payload.dynamodb_table }}",
+          "keda.queueURL": "${{ github.event.client_payload.sqs_queue_url }}",
+          "keda.awsRegion": "${{ github.event.client_payload.aws_region }}",
+          "secret.AWS_ACCESS_KEY_ID": "${{ github.event.client_payload.aws_access_key_id }}",
+          "secret.AWS_SECRET_ACCESS_KEY": "${{ github.event.client_payload.aws_secret_access_key }}",
+          "secret.AWS_SESSION_TOKEN": "${{ github.event.client_payload.aws_session_token }}"
+        }
+    secrets:
+      GITOPS_PUSH_TOKEN: ${{ secrets.GITOPS_PUSH_TOKEN }}

@@ -1,15 +1,15 @@
-name: CI/CD tooglemaster - auth-service
+name: CI/CD tooglemaster - targeting-service
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'microservices/auth-service/**'
+      - 'microservices/targeting-service/**'
 
-env: 
-  SERVICE_NAME: auth-service
-  SERVICE_PATH: microservices/auth-service
-  GO_VERSION: '1.24'
+env:
+  SERVICE_NAME: targeting-service
+  SERVICE_PATH: microservices/targeting-service
+  PYTHON_VERSION: '3.11'
   AWS_REGION: us-east-1
 
 permissions:
@@ -22,32 +22,39 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.SERVICE_PATH }}
-   
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Configura o ambiente de execução do Go
-        uses: actions/setup-go@v5
+      - name: Configura o ambiente de execução do Python
+        uses: actions/setup-python@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.SERVICE_PATH }}/go.sum
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: ${{ env.SERVICE_PATH }}/requirements.txt
 
-      - name: go vet
-        run: go vet ./...
+      - name: Instala dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Build (garante que compila)
-        run: go build ./...
+      - name: Verifica sintaxe (compileall)
+        run: python -m compileall -q .
 
       - name: Testes
-        run: go test ./... -v
+        run: |
+          pip install pytest
+          if find . -name 'test_*.py' -o -name '*_test.py' | grep -q .; then
+            pytest -v
+          else
+            echo "Nenhum teste encontrado, pulando."
+          fi
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: ${{ env.SERVICE_PATH }}
-          args: --timeout=5m
+      - name: flake8
+        run: |
+          pip install flake8
+          flake8 . --max-line-length=120 --extend-ignore=E203,W503
 
   security:
     name: Segurança (SAST + SCA)
@@ -60,11 +67,12 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.SERVICE_PATH }}/go.sum
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: ${{ env.SERVICE_PATH }}/requirements.txt
 
       - name: SCA - Trivy filesystem scan (dependências e segredos)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -84,32 +92,32 @@ jobs:
           path: trivy-fs-report-${{ env.SERVICE_NAME }}.txt
           retention-days: 30
 
-      - name: SCA - govulncheck (CVEs conhecidas nas dependências Go)
+      - name: SCA - pip-audit (CVEs conhecidas nas dependências Python)
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./... > govulncheck-report.txt 2>&1 || true
-          cat govulncheck-report.txt
+          pip install pip-audit
+          pip-audit -r requirements.txt > pip-audit-report.txt 2>&1 || true
+          cat pip-audit-report.txt
 
-      - name: Upload relatório govulncheck
+      - name: Upload relatório pip-audit
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: govulncheck-report-${{ env.SERVICE_NAME }}
-          path: ${{ env.SERVICE_PATH }}/govulncheck-report.txt
+          name: pip-audit-report-${{ env.SERVICE_NAME }}
+          path: ${{ env.SERVICE_PATH }}/pip-audit-report.txt
           retention-days: 30
 
-      - name: SAST - gosec
+      - name: SAST - bandit
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec ./... > gosec-report.txt 2>&1 || true
-          cat gosec-report.txt
+          pip install bandit
+          bandit -r . -x ./tests > bandit-report.txt 2>&1 || true
+          cat bandit-report.txt
 
-      - name: Upload relatório gosec
+      - name: Upload relatório bandit
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gosec-report-${{ env.SERVICE_NAME }}
-          path: ${{ env.SERVICE_PATH }}/gosec-report.txt
+          name: bandit-report-${{ env.SERVICE_NAME }}
+          path: ${{ env.SERVICE_PATH }}/bandit-report.txt
           retention-days: 30
   build:
     name: Build da imagem Docker
@@ -177,27 +185,27 @@ jobs:
           context: ${{ env.SERVICE_PATH }}
           file: ${{ env.SERVICE_PATH }}/Dockerfile
           push: true
-          tags: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}:${{ steps.meta.outputs.tag }}
+          tags: ${{ secrets.ECR_REGISTRY_TARGETING_SERVICE }}:${{ steps.meta.outputs.tag }}
           cache-from: type=gha
 
       - name: Atualiza manifesto GitOps
         run: |
-          FILE=gitops/auth-service/auth-service-deployment.yml
+          FILE=gitops/targeting-service/targeting-service-deployment.yml
           grep -q "^\s*image:" "$FILE" || { echo "Linha 'image:' não encontrada em $FILE"; exit 1; }
-          sed -i "s|image: .*|image: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}:${{ steps.meta.outputs.tag }}|" "$FILE"
-          grep -q "image: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}:${{ steps.meta.outputs.tag }}" "$FILE" \
+          sed -i "s|image: .*|image: ${{ secrets.ECR_REGISTRY_TARGETING_SERVICE }}:${{ steps.meta.outputs.tag }}|" "$FILE"
+          grep -q "image: ${{ secrets.ECR_REGISTRY_TARGETING_SERVICE }}:${{ steps.meta.outputs.tag }}" "$FILE" \
             || { echo "Falha ao atualizar a tag da imagem em $FILE"; exit 1; }
 
       - name: Commit e push do GitOps
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add gitops/auth-service/auth-service-deployment.yml
+          git add gitops/targeting-service/targeting-service-deployment.yml
           if git diff --cached --quiet; then
             echo "Nenhuma mudança no manifesto, pulando commit."
             exit 0
           fi
-          git commit -m "chore: atualiza imagem do auth-service para ${{ steps.meta.outputs.tag }}"
+          git commit -m "chore: atualiza imagem do targeting-service para ${{ steps.meta.outputs.tag }}"
           success=false
           for i in 1 2 3; do
             if git pull --rebase origin main && git push origin HEAD:main; then
