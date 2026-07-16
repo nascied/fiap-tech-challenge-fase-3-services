@@ -1,12 +1,12 @@
-name: CI/CD tooglemaster - auth-service
+name: CI/CD tooglemaster - evaluation-service
 
 on:
   pull_request:
     branches: [main]
 
-env: 
-  SERVICE_NAME: auth-service
-  SERVICE_PATH: microservices/auth-service
+env:
+  SERVICE_NAME: evaluation-service
+  SERVICE_PATH: microservices/evaluation-service
   GO_VERSION: '1.24'
   AWS_REGION: us-east-1
 
@@ -20,7 +20,7 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.SERVICE_PATH }}
-   
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -177,7 +177,7 @@ jobs:
           context: ${{ env.SERVICE_PATH }}
           file: ${{ env.SERVICE_PATH }}/Dockerfile
           push: true
-          tags: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}:${{ steps.meta.outputs.tag }}
+          tags: ${{ secrets.ECR_REGISTRY_EVALUATION_SERVICE }}:${{ steps.meta.outputs.tag }}
           cache-from: type=gha
 
   update-gitops:
@@ -185,8 +185,8 @@ jobs:
     needs: build
     uses: nascied/fiap-tech-challenge-fase-3-gitops/.github/workflows/update-image.yaml@main
     with:
-      service: auth-service
-      image_repository: ${{ secrets.ECR_REGISTRY_AUTH_SERVICE }}
+      service: evaluation-service
+      image_repository: ${{ secrets.ECR_REGISTRY_EVALUATION_SERVICE }}
       image_tag: ${{ needs.build.outputs.image_tag }}
     secrets:
       GITOPS_PUSH_TOKEN: ${{ secrets.GITOPS_PUSH_TOKEN }}
