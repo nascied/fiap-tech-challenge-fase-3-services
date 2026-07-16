@@ -186,7 +186,7 @@ jobs:
     uses: nascied/fiap-tech-challenge-fase-3-gitops/.github/workflows/update-image.yaml@main
     with:
       service: evaluation-service
-      image_repository: ${{ secrets.ECR_REGISTRY_EVALUATION_SERVICE }}
       image_tag: ${{ needs.build.outputs.image_tag }}
     secrets:
       GITOPS_PUSH_TOKEN: ${{ secrets.GITOPS_PUSH_TOKEN }}
+      IMAGE_REPOSITORY: ${{ secrets.ECR_REGISTRY_EVALUATION_SERVICE }}
