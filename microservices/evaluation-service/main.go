@@ -13,7 +13,46 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
 	"github.com/aws/aws-sdk-go/aws/credentials" //adicionado essa linha para poder autenticar na aws
+
+	// ==================== OpenTelemetry (instrumentação - Requisito 3) ====================
+	// Descomentar junto com o bloco em initTracer() e no main(), quando o endpoint do
+	// OTel Collector e a ferramenta de APM (Datadog/New Relic) estiverem definidos.
+	// Este é o serviço citado no enunciado para exibir o Distributed Tracing: ele chama
+	// flag-service e targeting-service via HTTP, então o cliente HTTP também precisa
+	// ser instrumentado (otelhttp.NewTransport) para propagar o trace entre os serviços.
+	// Dependências a adicionar no go.mod:
+	//   go.opentelemetry.io/otel
+	//   go.opentelemetry.io/otel/sdk
+	//   go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc
+	//   go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
+	// "go.opentelemetry.io/otel"
+	// "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	// "go.opentelemetry.io/otel/sdk/resource"
+	// sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	// semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	// "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	// =======================================================================================
 )
+
+// initTracer configura o TracerProvider do OpenTelemetry, exportando traces via OTLP/gRPC
+// para o OTel Collector (Service dentro do cluster, namespace "monitoring").
+//
+// func initTracer(ctx context.Context, serviceName string) (func(context.Context) error, error) {
+// 	exporter, err := otlptracegrpc.New(ctx,
+// 		otlptracegrpc.WithEndpoint("otel-collector-opentelemetry-collector.monitoring.svc.cluster.local:4317"),
+// 		otlptracegrpc.WithInsecure(),
+// 	)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	res, _ := resource.New(ctx, resource.WithAttributes(semconv.ServiceName(serviceName)))
+// 	tp := sdktrace.NewTracerProvider(
+// 		sdktrace.WithBatcher(exporter),
+// 		sdktrace.WithResource(res),
+// 	)
+// 	otel.SetTracerProvider(tp)
+// 	return tp.Shutdown, nil
+// }
 
 // Contexto global para o Redis
 var ctx = context.Background()
@@ -30,6 +69,13 @@ type App struct {
 
 func main() {
 	_ = godotenv.Load() // Carrega .env para dev local
+
+	// Inicializa o OpenTelemetry (descomentar junto com os imports e initTracer acima)
+	// shutdown, err := initTracer(context.Background(), "evaluation-service")
+	// if err != nil {
+	// 	log.Fatalf("erro ao iniciar OpenTelemetry: %v", err)
+	// }
+	// defer shutdown(context.Background())
 
 	// --- Configuração ---
 	port := os.Getenv("PORT")
@@ -130,8 +176,11 @@ func main() {
 
 
 	// Cliente HTTP (com timeout)
+	// Com OTel ativo, adicionar Transport: otelhttp.NewTransport(http.DefaultTransport)
+	// para propagar o contexto de trace nas chamadas a flag-service/targeting-service.
 	httpClient := &http.Client{
 		Timeout: 5 * time.Second,
+		// Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
 	// Cria a instância da App
@@ -150,6 +199,9 @@ func main() {
 	mux.HandleFunc("/evaluate", app.evaluationHandler)
 
 	log.Printf("Serviço de Avaliação (Go) rodando na porta %s", port)
+	// Com OTel ativo, trocar "mux" por otelhttp.NewHandler(mux, "evaluation-service")
+	// para instrumentar automaticamente todas as rotas HTTP.
+	// if err := http.ListenAndServe(":"+port, otelhttp.NewHandler(mux, "evaluation-service")); err != nil {
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatal(err)
 	}

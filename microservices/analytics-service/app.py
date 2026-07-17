@@ -159,6 +159,38 @@ def sqs_worker_loop():
 
 app = Flask(__name__)
 
+# ==================== OpenTelemetry (instrumentação - Requisito 3) ====================
+# Descomentar quando o endpoint do OTel Collector e a ferramenta de APM
+# (Datadog/New Relic) estiverem definidos.
+#
+# Dependências a adicionar no requirements.txt:
+#   opentelemetry-api
+#   opentelemetry-sdk
+#   opentelemetry-exporter-otlp
+#   opentelemetry-instrumentation-flask
+#   opentelemetry-instrumentation-botocore
+#
+# from opentelemetry import trace
+# from opentelemetry.sdk.trace import TracerProvider
+# from opentelemetry.sdk.trace.export import BatchSpanProcessor
+# from opentelemetry.sdk.resources import Resource
+# from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+# from opentelemetry.instrumentation.flask import FlaskInstrumentor
+# from opentelemetry.instrumentation.botocore import BotocoreInstrumentor
+#
+# resource = Resource(attributes={"service.name": "analytics-service"})
+# provider = TracerProvider(resource=resource)
+# exporter = OTLPSpanExporter(
+#     endpoint="otel-collector-opentelemetry-collector.monitoring.svc.cluster.local:4317",
+#     insecure=True,
+# )
+# provider.add_span_processor(BatchSpanProcessor(exporter))
+# trace.set_tracer_provider(provider)
+#
+# FlaskInstrumentor().instrument_app(app)  # instrumenta a rota /health
+# BotocoreInstrumentor().instrument()      # instrumenta chamadas SQS/DynamoDB (boto3)
+# ========================================================================================
+
 
 @app.route('/health')
 def health():

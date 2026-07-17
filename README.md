@@ -252,6 +252,43 @@ Após o push das imagens:
 
 ---
 
+# ⚙️ Como as Pipelines São Acionadas
+
+Existem **dois gatilhos diferentes** neste repositório, com propósitos distintos:
+
+## 1. Build de imagem — `pull_request` para `main`
+
+Cada `ci-<serviço>.yaml` roda em **qualquer Pull Request aberto contra a branch `main`** (não há filtro de `paths`, ou seja, uma PR dispara os 5 workflows ao mesmo tempo, mesmo alterando só um serviço). O fluxo de jobs é:
+
+```
+lintcode → security → build → update-gitops
+```
+
+- **`lintcode`**: `go vet`/`golangci-lint` (Go) ou `flake8` (Python)
+- **`security`**: Trivy (filesystem), govulncheck/gosec (Go) ou pip-audit/bandit (Python)
+- **`build`**: build da imagem Docker, scan Trivy da imagem, push pro Amazon ECR
+- **`update-gitops`**: **não roda comandos próprios** — ele chama (`uses:`) o workflow reutilizável [`update-image.yaml`](https://github.com/nascied/fiap-tech-challenge-fase-3-gitops/blob/main/.github/workflows/update-image.yaml) do repositório `fiap-tech-challenge-fase-3-gitops`, passando o nome do serviço e a tag gerada. Esse workflow é quem de fato atualiza `image.repository`/`image.tag` no `values.yaml` do Helm chart e dá push no repo GitOps.
+
+**Para acionar manualmente**: abra (ou atualize) uma Pull Request para `main` — não existe outra forma de disparar esses 5 workflows.
+
+## 2. Sincronização de valores de infraestrutura — `repository_dispatch`
+
+O workflow [`sync-infra-values.yaml`](.github/workflows/sync-infra-values.yaml) **não** é acionado por push ou PR neste repositório. Ele é disparado externamente pelo repositório de infraestrutura (`fase3`), via evento `repository_dispatch` (tipo `infra-outputs-updated`), logo após um `terraform apply` bem-sucedido. Ele roda 5 jobs em paralelo (um por serviço), cada um chamando o workflow reutilizável `update-infra-values.yaml` (também no repo GitOps) para gravar no `values.yaml` do serviço: `DATABASE_URL`, endpoint do Redis, URL da fila SQS, tabela do DynamoDB e as credenciais AWS de sessão.
+
+**Não dá pra acionar manualmente pela aba Actions** deste repositório — só rodando o `terraform apply` no repositório `fase3` (ou disparando o `repository_dispatch` via API/`gh CLI` diretamente).
+
+## Secrets necessários (Settings → Secrets and variables → Actions)
+
+| Secret | Usado por |
+|---|---|
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` | Login no ECR (job `build`, todos os 5 workflows) |
+| `ECR_REGISTRY_AUTH_SERVICE`, `ECR_REGISTRY_FLAG_SERVICE`, `ECR_REGISTRY_TARGETING_SERVICE`, `ECR_REGISTRY_EVALUATION_SERVICE`, `ECR_REGISTRY_ANALYTICS_SERVICE` | Push da imagem + repassado como `IMAGE_REPOSITORY` pro workflow reutilizável |
+| `GITOPS_PUSH_TOKEN` | PAT com permissão de escrita no repo `fiap-tech-challenge-fase-3-gitops` — usado pelos jobs `update-gitops` e por `sync-infra-values.yaml` |
+
+> Nota: como os workflows reutilizáveis (`update-image.yaml`, `update-infra-values.yaml`) moram no repositório GitOps mas são **chamados** a partir daqui, a execução deles acontece no contexto deste repositório — por isso os secrets acima (inclusive o `GITOPS_PUSH_TOKEN`) precisam estar cadastrados **aqui**, e não no repositório GitOps.
+
+---
+
 # 📄 Exemplo de Atualização do Manifest
 
 ```yaml
