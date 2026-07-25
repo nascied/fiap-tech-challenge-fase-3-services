@@ -198,3 +198,4 @@ jobs:
     secrets:
       GITOPS_PUSH_TOKEN: ${{ secrets.GITOPS_PUSH_TOKEN }}
       IMAGE_REPOSITORY: ${{ secrets.ECR_REGISTRY_TARGETING_SERVICE }}
+      
