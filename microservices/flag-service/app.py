@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 from functools import wraps
 import logging
 
+from telemetry import init_tracer
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+
 # Configura o logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -17,6 +20,9 @@ log = logging.getLogger(__name__)
 load_dotenv() 
 
 app = Flask(__name__)
+
+init_tracer("flag-service")
+FlaskInstrumentor().instrument_app(app)
 
 # --- Configuração ---
 DATABASE_URL = os.getenv("DATABASE_URL")

@@ -10,6 +10,9 @@ from botocore.exceptions import NoCredentialsError, ClientError
 from flask import Flask, jsonify
 from dotenv import load_dotenv
 
+from telemetry import init_tracer
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+
 # Configura o logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
@@ -121,6 +124,9 @@ def sqs_worker_loop():
 # --- Servidor Flask (Apenas para Health Check) ---
 
 app = Flask(__name__)
+
+init_tracer("analytics-service")
+FlaskInstrumentor().instrument_app(app)
 
 @app.route('/health')
 def health():

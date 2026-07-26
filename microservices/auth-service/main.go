@@ -1,80 +1,146 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"log"
 	"net/http"
 	"os"
-	_"github.com/jackc/pgx/v4/stdlib"
+	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-// App struct (para injeção de dependência)
+// Contexto global para o Redis
+var ctx = context.Background()
+
+// App struct para injeção de dependência
 type App struct {
-	DB         *sql.DB
-	MasterKey  string
+	RedisClient         *redis.Client
+	SqsSvc              *sqs.SQS
+	SqsQueueURL         string
+	HttpClient          *http.Client
+	FlagServiceURL      string
+	TargetingServiceURL string
 }
 
 func main() {
-	// Carrega o .env para desenvolvimento local. Em produção, isso não fará nada.
-	_ = godotenv.Load()
+	_ = godotenv.Load() // Carrega .env para dev local
+
+	// Inicializa OpenTelemetry
+	shutdown := initTracer()
+	defer shutdown(context.Background())
 
 	// --- Configuração ---
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8001" // Porta padrão
+		port = "8004"
 	}
 
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		log.Fatal("DATABASE_URL deve ser definida")
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		log.Fatal("REDIS_URL deve ser definida (ex: redis://localhost:6379)")
 	}
 
-	masterKey := os.Getenv("MASTER_KEY")
-	if masterKey == "" {
-		log.Fatal("MASTER_KEY deve ser definida")
+	flagSvcURL := os.Getenv("FLAG_SERVICE_URL")
+	if flagSvcURL == "" {
+		log.Fatal("FLAG_SERVICE_URL deve ser definida")
 	}
 
-	// --- Conexão com o Banco ---
-	db, err := connectDB(databaseURL)
+	targetingSvcURL := os.Getenv("TARGETING_SERVICE_URL")
+	if targetingSvcURL == "" {
+		log.Fatal("TARGETING_SERVICE_URL deve ser definida")
+	}
+
+	// SQS é opcional no dev local, mas obrigatório em prod
+	sqsQueueURL := os.Getenv("AWS_SQS_URL")
+	awsRegion := os.Getenv("AWS_REGION")
+	if sqsQueueURL == "" {
+		log.Println("Atenção: AWS_SQS_URL não definida. Eventos não serão enviados.")
+	}
+	if awsRegion == "" && sqsQueueURL != "" {
+		log.Fatal("AWS_REGION deve ser definida para usar SQS")
+	}
+
+	// --- Inicializa Clientes ---
+
+	// Cliente Redis
+	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
-		log.Fatalf("Não foi possível conectar ao banco de dados: %v", err)
+		log.Fatalf("Não foi possível parsear a URL do Redis: %v", err)
 	}
-	defer db.Close()
 
+	rdb := redis.NewClient(opt)
+
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		log.Fatalf("Não foi possível conectar ao Redis: %v", err)
+	}
+
+	log.Println("Conectado ao Redis com sucesso!")
+
+	// Cliente SQS (AWS SDK)
+	var sqsSvc *sqs.SQS
+
+	if sqsQueueURL != "" {
+		sqsEndpoint := os.Getenv("AWS_ENDPOINT_URL")
+
+		awsConfig := &aws.Config{
+			Region: aws.String(awsRegion),
+			Credentials: credentials.NewStaticCredentials(
+				os.Getenv("AWS_ACCESS_KEY_ID"),
+				os.Getenv("AWS_SECRET_ACCESS_KEY"),
+				os.Getenv("AWS_SESSION_TOKEN"),
+			),
+		}
+
+		if sqsEndpoint != "" {
+			log.Printf("Usando SQS local: %s", sqsEndpoint)
+			awsConfig.Endpoint = aws.String(sqsEndpoint)
+		} else {
+			log.Println("Usando SQS da AWS")
+		}
+
+		sess, err := session.NewSession(awsConfig)
+		if err != nil {
+			log.Fatalf("Não foi possível criar sessão AWS: %v", err)
+		}
+
+		sqsSvc = sqs.New(sess)
+		log.Println("Cliente SQS inicializado com sucesso.")
+	}
+
+	// Cliente HTTP
+	httpClient := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	// Cria a instância da App
 	app := &App{
-		DB:         db,
-		MasterKey:  masterKey,
+		RedisClient:         rdb,
+		SqsSvc:              sqsSvc,
+		SqsQueueURL:         sqsQueueURL,
+		HttpClient:          httpClient,
+		FlagServiceURL:      flagSvcURL,
+		TargetingServiceURL: targetingSvcURL,
 	}
 
-	// --- Rotas da API ---
+	// --- Rotas ---
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", app.healthHandler)
+	mux.HandleFunc("/evaluate", app.evaluationHandler)
 
-	// Endpoint público para validar uma chave
-	mux.HandleFunc("/validate", app.validateKeyHandler)
+	// Instrumentação OpenTelemetry
+	handler := otelhttp.NewHandler(mux, "evaluation-service")
 
-	// Endpoints de "admin" para criar/gerenciar chaves
-	// Eles são protegidos pelo middleware de autenticação
-	mux.Handle("/admin/keys", app.masterKeyAuthMiddleware(http.HandlerFunc(app.createKeyHandler)))
+	log.Printf("Serviço de Avaliação (Go) rodando na porta %s", port)
 
-	log.Printf("Serviço de Autenticação (Go) rodando na porta %s", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	if err := http.ListenAndServe(":"+port, handler); err != nil {
 		log.Fatal(err)
 	}
-}
-
-// connectDB inicializa e testa a conexão com o PostgreSQL
-func connectDB(databaseURL string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", databaseURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = db.Ping(); err != nil {
-		return nil, err
-	}
-
-	log.Println("Conectado ao PostgreSQL com sucesso!")
-	return db, nil
 }
