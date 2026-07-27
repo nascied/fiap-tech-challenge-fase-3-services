@@ -88,7 +88,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("erro ao iniciar OpenTelemetry: %v", err)
 	}
-	defer shutdown(ctx)
+	defer func() {
+		if err := shutdown(ctx); err != nil {
+			log.Printf("erro ao finalizar OpenTelemetry: %v", err)
+		}
+	}()
 
 	// --- Configuração ---
 	port := os.Getenv("PORT")

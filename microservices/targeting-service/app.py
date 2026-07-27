@@ -9,15 +9,6 @@ from dotenv import load_dotenv
 from functools import wraps
 import logging
 
-# Configura o logging
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger(__name__)
-
-# Carrega .env para desenvolvimento local
-load_dotenv()
-
-app = Flask(__name__)
-
 # ==================== OpenTelemetry (instrumentação - Requisito 3) ====================
 # Traces → APM (Datadog); métricas HTTP → Prometheus (dashboard do Grafana).
 from opentelemetry import trace, metrics
@@ -31,7 +22,18 @@ from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExp
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+# ========================================================================================
 
+# Configura o logging
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
+
+# Carrega .env para desenvolvimento local
+load_dotenv()
+
+app = Flask(__name__)
+
+# ==================== OpenTelemetry (instrumentação - Requisito 3) ====================
 _OTEL_ENDPOINT = "otel-collector-opentelemetry-collector.monitoring.svc.cluster.local:4317"
 _otel_resource = Resource(attributes={"service.name": "targeting-service"})
 
