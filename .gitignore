@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+
+microservices/auth-service/auth-service
+microservices/evaluation-service/evaluation-service
